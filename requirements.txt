@@ -1,0 +1,6 @@
+torch
+transformers
+sentencepiece
+gradio==3.50.2
+protobuf
+pillow
