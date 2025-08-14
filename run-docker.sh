@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Building and running Donut app with Docker..."
+echo "Building and running Donut MCP Server with Docker..."
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -8,50 +8,62 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Remove existing container if it exists
-if docker ps -a --format '{{.Names}}' | grep -q '^donut-container$'; then
-    echo "Removing existing container..."
-    docker rm -f donut-container
-fi
-
-# Remove existing image if it exists
-if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q '^donut-app:latest$'; then
-    echo "Removing existing image..."
-    docker rmi donut-app:latest
-fi
-
-echo "Building Docker image..."
-# Try building with main Dockerfile first
-if docker build -t donut-app .; then
-    echo "Build successful with main Dockerfile"
-else
-    echo "Build failed with main Dockerfile, trying alternative..."
-    if docker build -f Dockerfile.alternative -t donut-app .; then
-        echo "Build successful with alternative Dockerfile"
-    else
-        echo "Build failed with both Dockerfiles. Please check the error messages above."
-        exit 1
-    fi
-fi
-
-echo "Running container..."
-docker run -d \
-  --name donut-container \
-  -p 7860:7860 \
-  -v $(pwd)/examples:/app/examples \
-  -v $(pwd)/flagged:/app/flagged \
-  donut-app
-
-if [ $? -eq 0 ]; then
-    echo "✅ Donut app is running successfully!"
-    echo "🌐 Access the app at: http://localhost:7860"
-    echo ""
-    echo "Useful commands:"
-    echo "  View logs: docker logs donut-container"
-    echo "  Stop app: docker stop donut-container"
-    echo "  Remove container: docker rm donut-container"
-    echo "  Remove image: docker rmi donut-app"
-else
-    echo "❌ Failed to run the container"
+# Check if docker-compose is available
+if ! command -v docker-compose &> /dev/null; then
+    echo "Error: docker-compose is not installed. Please install docker-compose first."
     exit 1
 fi
+
+# Function to cleanup
+cleanup() {
+    echo "Cleaning up..."
+    docker-compose down
+    echo "Cleanup completed."
+}
+
+# Set trap to cleanup on script exit
+trap cleanup EXIT
+
+echo "Building and starting services with docker-compose..."
+docker-compose up --build -d
+
+if [ $? -eq 0 ]; then
+    echo "✅ Donut MCP Server is running successfully!"
+    echo "🌐 Access the server at: http://localhost:8000"
+    echo "📚 API Documentation: http://localhost:8000/docs"
+    echo "❤️  Health Check: http://localhost:8000/health"
+    echo ""
+    echo "Useful commands:"
+    echo "  View logs: docker-compose logs -f"
+    echo "  Stop services: docker-compose down"
+    echo "  Restart services: docker-compose restart"
+    echo "  View running containers: docker-compose ps"
+    echo ""
+    echo "Production mode (with nginx):"
+    echo "  docker-compose --profile production up -d"
+    echo ""
+    echo "Testing the API:"
+    echo "  curl http://localhost:8000/health"
+    echo "  curl -X POST http://localhost:8000/process/paths -H 'Content-Type: application/json' -d '{\"image_paths\": [\"examples/example1.jpg\"]}'"
+    
+    # Wait a moment for the server to fully start
+    echo ""
+    echo "Waiting for server to be ready..."
+    sleep 5
+    
+    # Test health endpoint
+    if curl -s http://localhost:8000/health > /dev/null; then
+        echo "✅ Server is responding to health checks!"
+    else
+        echo "⚠️  Server might still be starting up. Please wait a moment and try again."
+    fi
+    
+else
+    echo "❌ Failed to start the services"
+    exit 1
+fi
+
+echo ""
+echo "Press Ctrl+C to stop the services..."
+# Keep the script running
+docker-compose logs -f

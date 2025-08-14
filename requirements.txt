@@ -1,6 +1,25 @@
-torch
-transformers
-sentencepiece
-gradio==3.50.2
-protobuf
-pillow
+# Core ML dependencies
+torch>=1.12.0
+transformers>=4.20.0
+sentencepiece>=0.1.96
+protobuf>=3.20.0
+
+# Image processing
+pillow>=9.0.0
+
+# FastAPI and web server
+fastapi>=0.95.0
+uvicorn[standard]>=0.20.0
+python-multipart>=0.0.6
+
+# Data validation and serialization
+pydantic>=1.10.0
+
+# Additional utilities
+python-dotenv>=0.19.0
+httpx>=0.24.0
+aiofiles>=23.0.0
+
+# Development and testing (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
